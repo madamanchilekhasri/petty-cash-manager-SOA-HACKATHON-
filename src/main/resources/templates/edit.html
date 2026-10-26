@@ -1,0 +1,102 @@
+
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Edit Cash Report</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f1f5f9;
+            color: #172033;
+            padding: 25px;
+        }
+
+        .card {
+            max-width: 600px;
+            margin: 30px auto;
+            padding: 25px;
+            background: white;
+            border-radius: 12px;
+        }
+
+        label {
+            display: block;
+            margin: 15px 0 6px;
+        }
+
+        input {
+            width: 100%;
+            padding: 11px;
+            box-sizing: border-box;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+        }
+
+        button, .back {
+            display: inline-block;
+            margin-top: 20px;
+            padding: 11px 16px;
+            border: none;
+            border-radius: 6px;
+            background: #2563eb;
+            color: white;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .back {
+            background: #475569;
+        }
+    </style>
+</head>
+
+<body>
+<div class="card">
+    <h1>Edit Cash Report</h1>
+
+    <form th:action="@{/update/{id}(id=${record.id})}"
+          method="post">
+
+        <label for="cashierName">Cashier name</label>
+        <input id="cashierName"
+               type="text"
+               name="cashierName"
+               th:value="${record.cashierName}"
+               required>
+
+        <label for="expectedCash">Expected cash (₹)</label>
+        <input id="expectedCash"
+               type="number"
+               name="expectedCash"
+               min="0"
+               step="0.01"
+               th:value="${record.expectedCash}"
+               required>
+
+        <label for="totalCash">Total cash counted (₹)</label>
+        <input id="totalCash"
+               type="number"
+               name="totalCash"
+               min="0"
+               step="0.01"
+               th:value="${record.totalCash}"
+               required>
+
+        <label for="totalNotes">Total notes and coins</label>
+        <input id="totalNotes"
+               type="number"
+               name="totalNotes"
+               min="0"
+               step="1"
+               th:value="${record.totalNotes}"
+               required>
+
+        <button type="submit">Update Report</button>
+        <a class="back" th:href="@{/}">Cancel</a>
+    </form>
+</div>
+</body>
+</html>

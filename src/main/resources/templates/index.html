@@ -1,0 +1,1658 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Petty Cash Manager</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        :root {
+            --ink: #172033;
+            --muted: #64748b;
+            --line: #e2e8f0;
+            --surface: #ffffff;
+            --page: #f4f7fb;
+            --primary: #315cf5;
+            --primary-dark: #2347d7;
+            --green: #159957;
+            --amber: #c87908;
+            --red: #dc3545;
+            --radius: 18px;
+            --shadow: 0 8px 26px rgba(20, 35, 70, .065);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            margin: 0;
+            padding: 32px;
+            color: var(--ink);
+            background:
+                radial-gradient(ellipse at top left, rgba(49, 92, 245, .07), transparent 35%),
+                var(--page);
+            font-family: Inter, ui-sans-serif, system-ui, -apple-system,
+                BlinkMacSystemFont, "Segoe UI", sans-serif;
+            font-size: 14px;
+            line-height: 1.55;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1480px;
+            margin: 0 auto;
+        }
+
+        h1, h2, h3 {
+            color: var(--ink);
+            letter-spacing: -.025em;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: clamp(28px, 3vw, 40px);
+            font-weight: 800;
+            line-height: 1.15;
+        }
+
+        h2 {
+            margin: 0 0 16px;
+            font-size: clamp(20px, 2vw, 25px);
+            font-weight: 750;
+        }
+
+        h3 {
+            font-size: 15px;
+            margin: 0 0 12px;
+            font-weight: 700;
+        }
+
+        .container > h1 {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .container > h1::before {
+            content: "₹";
+            display: inline-grid;
+            place-items: center;
+            flex: 0 0 48px;
+            width: 48px;
+            height: 48px;
+            border-radius: 15px;
+            color: white;
+            background: linear-gradient(145deg, #4774ff, #2746d8);
+            box-shadow: 0 8px 18px rgba(49, 92, 245, .24);
+            font-size: 25px;
+        }
+
+        .subtitle {
+            color: var(--muted);
+            margin: 8px 0 22px;
+        }
+
+        .card {
+            background: var(--surface);
+            padding: clamp(20px, 2.5vw, 30px);
+            margin: 0 0 24px;
+            border: 1px solid rgba(226, 232, 240, .85);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            min-width: 0;
+        }
+
+        .card > .subtitle {
+            margin-top: -7px;
+        }
+
+        .message {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: #e8fbf1;
+            color: #12683c;
+            border: 1px solid #b9efd0;
+            padding: 14px 16px;
+            border-radius: 12px;
+            margin: 0 0 22px;
+            font-weight: 600;
+        }
+
+        .message::before {
+            content: "✓";
+            display: grid;
+            place-items: center;
+            width: 23px;
+            height: 23px;
+            border-radius: 50%;
+            background: #c5f3d8;
+        }
+
+        .dashboard-cards {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 18px;
+            margin: 22px 0 26px;
+        }
+
+        .dashboard-card {
+            position: relative;
+            overflow: hidden;
+            min-width: 0;
+            padding: 23px;
+            background: var(--surface);
+            border: 1px solid var(--line);
+            border-radius: 16px;
+            box-shadow: var(--shadow);
+            border-top: 4px solid var(--primary);
+        }
+
+        .dashboard-card::after {
+            content: "";
+            position: absolute;
+            width: 90px;
+            height: 90px;
+            border-radius: 50%;
+            right: -28px;
+            top: -32px;
+            background: currentColor;
+            opacity: .045;
+        }
+
+        .dashboard-card h3 {
+            color: var(--muted);
+            font-size: 13px;
+            margin-bottom: 10px;
+            letter-spacing: .01em;
+        }
+
+        .dashboard-card p {
+            font-size: clamp(22px, 2vw, 29px);
+            font-weight: 800;
+            margin: 0;
+            overflow-wrap: anywhere;
+            letter-spacing: -.04em;
+        }
+
+        .cash-card {
+            border-top-color: #7c3aed;
+        }
+
+        .surplus-card {
+            border-top-color: var(--amber);
+            color: var(--amber);
+        }
+
+        .surplus-card p {
+            color: var(--amber);
+        }
+
+        .shortage-card {
+            border-top-color: var(--red);
+            color: var(--red);
+        }
+
+        .shortage-card p {
+            color: var(--red);
+        }
+
+        label {
+            display: block;
+            margin: 12px 0 7px;
+            font-size: 13px;
+            font-weight: 700;
+            color: #344054;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            min-width: 0;
+            padding: 12px 13px;
+            border: 1px solid #d5deeb;
+            border-radius: 10px;
+            background: #fff;
+            color: var(--ink);
+            font: inherit;
+            transition: border-color .18s ease, box-shadow .18s ease;
+        }
+
+        input::placeholder {
+            color: #98a2b3;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px rgba(49, 92, 245, .12);
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 18px;
+        }
+
+        .table-wrapper {
+            width: 100%;
+            overflow-x: auto;
+            border: 1px solid var(--line);
+            border-radius: 12px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            margin: 0;
+        }
+
+        th, td {
+            padding: 13px 14px;
+            text-align: center;
+            border-bottom: 1px solid var(--line);
+        }
+
+        th {
+            background: #f0f4fb;
+            color: #344054;
+            font-size: 12px;
+            font-weight: 800;
+            white-space: nowrap;
+            letter-spacing: .025em;
+        }
+
+        td {
+            background: #fff;
+            font-size: 13px;
+        }
+
+        tbody tr:last-child td,
+        tfoot tr:last-child td {
+            border-bottom: 0;
+        }
+
+        tbody tr:hover td {
+            background: #f8faff;
+        }
+
+        .denomination-table {
+            min-width: 320px;
+        }
+
+        .records-table {
+            min-width: 1050px;
+        }
+
+        .performance-table {
+            min-width: 700px;
+        }
+
+        .denomination-table input {
+            min-width: 50px;
+        }
+
+        .total-row {
+            font-weight: 800;
+            background: #f7f9fc;
+        }
+
+        .total-row td {
+            background: #f7f9fc;
+        }
+
+        .summary {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 14px;
+            margin-top: 20px;
+        }
+
+        .summary-box {
+            background: linear-gradient(145deg, #f0f5ff, #f7f9ff);
+            border: 1px solid #e1e9ff;
+            padding: 18px;
+            border-radius: 13px;
+            text-align: center;
+            overflow-wrap: anywhere;
+            color: #475467;
+        }
+
+        .summary-box strong {
+            display: block;
+            margin-top: 5px;
+            color: var(--ink);
+            font-size: 22px;
+            letter-spacing: -.03em;
+        }
+
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 18px;
+            margin-top: 22px;
+        }
+
+        .chart-box {
+            min-width: 0;
+            padding: 20px;
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            background: #fff;
+        }
+
+        .chart-box h3 {
+            font-size: 15px;
+            margin: 0 0 18px;
+        }
+
+        .chart-container {
+            position: relative;
+            width: 100%;
+            height: 300px;
+        }
+
+        .chart-note, .filter-message {
+            color: var(--muted);
+            font-size: 13px;
+            margin: 12px 0 0;
+        }
+
+        .filters {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: end;
+            margin: 18px 0 10px;
+        }
+
+        .filters > input {
+            flex: 1;
+            min-width: 220px;
+        }
+
+        .date-filters {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .date-filters > div {
+            min-width: 170px;
+        }
+
+        .date-filters label {
+            margin-top: 0;
+        }
+
+        .date-filters input {
+            min-width: 170px;
+        }
+
+        button, .action-link {
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+            gap: 7px;
+            min-height: 40px;
+            padding: 10px 16px;
+            border: 1px solid transparent;
+            border-radius: 10px;
+            color: white;
+            text-decoration: none;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 700;
+            font-family: inherit;
+            transition: transform .16s ease, box-shadow .16s ease,
+                background .16s ease;
+        }
+
+        button:hover, .action-link:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 5px 12px rgba(15, 23, 42, .12);
+        }
+
+        button:active, .action-link:active {
+            transform: translateY(0);
+        }
+
+        .save-button, .edit-button {
+            background: var(--primary);
+        }
+
+        .save-button:hover, .edit-button:hover {
+            background: var(--primary-dark);
+        }
+
+        .print-button, .reset-button {
+            background: #475467;
+        }
+
+        .delete-button {
+            background: #dc3545;
+        }
+
+        .export-button {
+            background: #13834c;
+            white-space: nowrap;
+        }
+
+        .save-button, .print-button {
+            margin-top: 20px;
+        }
+
+        .print-button {
+            margin-left: 8px;
+        }
+
+        .actions {
+            white-space: nowrap;
+        }
+
+        .actions form {
+            display: inline;
+        }
+
+        .difference-positive {
+            color: #c87908;
+            font-weight: 800;
+        }
+
+        .difference-negative {
+            color: #dc3545;
+            font-weight: 800;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 6px 10px;
+            border-radius: 999px;
+            font-weight: 800;
+            white-space: nowrap;
+            font-size: 11px;
+        }
+
+        .status-ok {
+            color: #137547;
+            background: #e4f8ed;
+        }
+
+        .status-surplus {
+            color: #925b00;
+            background: #fff2cc;
+        }
+
+        .status-warning {
+            color: #b42332;
+            background: #ffe7e9;
+        }
+
+        .rank-badge {
+            display: inline-grid;
+            place-items: center;
+            min-width: 28px;
+            height: 28px;
+            padding: 0 7px;
+            border-radius: 9px;
+            font-weight: 800;
+            color: #2447c6;
+            background: #eaf0ff;
+        }
+
+        .table-wrapper + .filter-message {
+            margin-top: 12px;
+        }
+
+        @media (max-width: 1000px) {
+            body {
+                padding: 22px;
+            }
+
+            .dashboard-cards {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 650px) {
+            body {
+                padding: 12px;
+            }
+
+            .card {
+                padding: 17px;
+                margin-bottom: 16px;
+                border-radius: 15px;
+            }
+
+            .container > h1 {
+                gap: 10px;
+                font-size: 27px;
+            }
+
+            .container > h1::before {
+                width: 40px;
+                height: 40px;
+                flex-basis: 40px;
+                border-radius: 12px;
+                font-size: 21px;
+            }
+
+            .form-row, .summary {
+                grid-template-columns: 1fr;
+            }
+
+            .filters, .date-filters {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .filters > input,
+            .date-filters > div,
+            .date-filters input {
+                width: 100%;
+                min-width: 0;
+            }
+
+            .dashboard-cards {
+                gap: 10px;
+                margin: 16px 0 18px;
+            }
+
+            .dashboard-card {
+                padding: 16px;
+                border-radius: 13px;
+            }
+
+            .dashboard-card h3 {
+                font-size: 12px;
+            }
+
+            .dashboard-card p {
+                font-size: 20px;
+            }
+
+            .chart-container {
+                height: 255px;
+            }
+
+            .chart-box {
+                padding: 14px;
+            }
+
+            .save-button, .print-button {
+                margin-top: 12px;
+            }
+
+            .print-button {
+                margin-left: 4px;
+            }
+
+            button, .action-link {
+                min-height: 42px;
+            }
+        }
+
+        @media (max-width: 390px) {
+            .dashboard-cards {
+                grid-template-columns: 1fr;
+            }
+
+            .container > h1 {
+                font-size: 24px;
+            }
+        }
+
+
+
+		@media print {
+		    @page {
+		        size: A4 portrait;
+		        margin: 8mm;
+		    }
+
+		    * {
+		        box-sizing: border-box !important;
+		        -webkit-print-color-adjust: exact !important;
+		        print-color-adjust: exact !important;
+		    }
+
+		    body {
+		        background: #ffffff !important;
+		        padding: 0 !important;
+		        margin: 0 !important;
+		        font-size: 9px !important;
+		        color: #111827 !important;
+		    }
+
+
+			/* Keep cashier summary together where possible */
+			.performance-summary,
+			.cashier-performance {
+			    break-inside: avoid;
+			    page-break-inside: avoid;
+			}
+
+			/* Allow saved reports to flow across pages */
+			.records-section {
+			    break-inside: auto !important;
+			    page-break-inside: auto !important;
+			}
+
+			.records-section table {
+			    break-inside: auto !important;
+			    page-break-inside: auto !important;
+			}
+
+			.records-section thead {
+			    display: table-header-group;
+			}
+
+			.records-section tr {
+			    break-inside: avoid;
+			    page-break-inside: avoid;
+			}
+
+
+		    .container {
+		        width: 100% !important;
+		        max-width: 100% !important;
+		        margin: 0 !important;
+		        padding: 0 !important;
+		    }
+
+		    h1 {
+		        font-size: 19px !important;
+		        margin: 0 0 3px !important;
+		    }
+
+		    h2 {
+		        font-size: 13px !important;
+		        margin: 0 0 5px !important;
+		    }
+
+		    h3 {
+		        font-size: 10px !important;
+		        margin: 0 0 4px !important;
+		    }
+
+		    p {
+		        margin: 3px 0 !important;
+		    }
+
+		    /* Compact cards */
+		    .card,
+		    .dashboard-card {
+		        background: #ffffff !important;
+		        box-shadow: none !important;
+		        border: 1px solid #d7deea !important;
+		        border-radius: 5px !important;
+		        padding: 6px !important;
+		        margin: 0 0 6px !important;
+		    }
+
+		    /* Summary cards: two columns */
+		    .dashboard-cards {
+		        display: grid !important;
+		        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+		        gap: 6px !important;
+		        margin-bottom: 6px !important;
+		    }
+
+		    /* Charts: two columns, smaller height */
+		    .charts-grid {
+		        display: grid !important;
+		        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+		        gap: 6px !important;
+		    }
+
+		    .chart-container {
+		        position: relative !important;
+		        width: 100% !important;
+		        height: 145px !important;
+		        min-height: 145px !important;
+		        max-height: 145px !important;
+		        padding: 4px !important;
+		        overflow: hidden !important;
+		        break-inside: avoid !important;
+		        page-break-inside: avoid !important;
+		    }
+
+		    .chart-container canvas {
+		        display: block !important;
+		        max-width: 100% !important;
+		        max-height: 120px !important;
+		    }
+
+		    /* Tables */
+		    .table-wrapper {
+		        width: 100% !important;
+		        overflow: visible !important;
+		        border: 0 !important;
+		    }
+
+		    .records-table,
+		    table {
+		        width: 100% !important;
+		        min-width: 0 !important;
+		        border-collapse: collapse !important;
+		        font-size: 7.5px !important;
+		    }
+
+		    th,
+		    td {
+		        padding: 3px !important;
+		        overflow-wrap: anywhere !important;
+		    }
+
+		    thead {
+		        display: table-header-group !important;
+		    }
+
+		    tr {
+		        break-inside: avoid !important;
+		        page-break-inside: avoid !important;
+		    }
+
+		    /* Keep small sections together when possible */
+		    .performance-summary,
+		    .cashier-performance,
+		    .records-section {
+		        break-inside: avoid !important;
+		        page-break-inside: avoid !important;
+		    }
+
+		    /* Remove screen-only spacing */
+		    section,
+		    .section {
+		        margin-top: 5px !important;
+		        margin-bottom: 5px !important;
+		    }
+
+		    a {
+		        color: inherit !important;
+		        text-decoration: none !important;
+		    }
+		}
+
+
+    </style>
+</head>
+
+<body>
+<div class="container">
+
+    <h1>Petty Cash Manager</h1>
+    <p class="subtitle">Manage daily cash counting, analytics, and reports.</p>
+
+    <div th:if="${successMessage}" class="message"
+         th:text="${successMessage}"></div>
+
+    <div th:if="${errorMessage}" class="message"
+         th:text="${errorMessage}"></div>
+
+    <section class="card no-print">
+        <h2>Date-wise Analytics</h2>
+
+        <form method="get" th:action="@{/}">
+            <div class="date-filters">
+                <div>
+                    <label for="fromDate">From date</label>
+                    <input type="date" id="fromDate" name="fromDate"
+                           th:value="${fromDate}">
+                </div>
+
+                <div>
+                    <label for="toDate">To date</label>
+                    <input type="date" id="toDate" name="toDate"
+                           th:value="${toDate}">
+                </div>
+
+                <button type="submit" class="save-button">Apply Dates</button>
+                <a th:href="@{/}" class="action-link reset-button">Clear Dates</a>
+            </div>
+        </form>
+
+        <p class="filter-message">
+            Dashboard totals, charts, cashier ranking, and saved reports reflect
+            the selected date range.
+        </p>
+    </section>
+
+    <section class="dashboard-cards">
+        <div class="dashboard-card">
+            <h3>Total Reports</h3>
+            <p th:text="${totalReports} ?: 0">0</p>
+        </div>
+
+        <div class="dashboard-card cash-card">
+            <h3>Total Counted Cash</h3>
+            <p>₹<span th:text="${#numbers.formatDecimal(totalCountedCash ?: 0, 1, 2)}">0.00</span></p>
+        </div>
+
+        <div class="dashboard-card surplus-card">
+            <h3>Total Surplus</h3>
+            <p>₹<span th:text="${#numbers.formatDecimal(totalSurplus ?: 0, 1, 2)}">0.00</span></p>
+        </div>
+
+        <div class="dashboard-card shortage-card">
+            <h3>Total Shortage</h3>
+            <p>₹<span th:text="${#numbers.formatDecimal(totalShortage ?: 0, 1, 2)}">0.00</span></p>
+        </div>
+    </section>
+
+    <section class="card">
+        <h2>Cash Analytics Dashboard</h2>
+        <p class="subtitle">Visual comparison of your saved cash reports.</p>
+
+        <div class="charts-grid">
+            <div class="chart-box">
+                <h3>Expected Cash vs Counted Cash</h3>
+                <div class="chart-container">
+                    <canvas id="cashComparisonChart"></canvas>
+                </div>
+            </div>
+
+            <div class="chart-box">
+                <h3>Surplus vs Shortage</h3>
+                <div class="chart-container">
+                    <canvas id="surplusShortageChart"></canvas>
+                </div>
+
+                <p id="noShortageMessage" class="chart-note" style="display:none">
+                    No shortage recorded in the saved reports.
+                </p>
+
+                <p id="noReportsMessage" class="chart-note" style="display:none">
+                    No reports available for the selected date range.
+                </p>
+            </div>
+
+            <div class="chart-box">
+                <h3>Cash Difference by Report</h3>
+                <div class="chart-container">
+                    <canvas id="differenceChart"></canvas>
+                </div>
+            </div>
+
+            <div class="chart-box">
+                <h3>Counted Cash by Report</h3>
+                <div class="chart-container">
+                    <canvas id="countedCashChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="card">
+        <h2>Cashier Performance Summary</h2>
+        <p class="subtitle">Summary of saved reports grouped by cashier.</p>
+
+        <div class="table-wrapper">
+            <table class="performance-table">
+                <thead>
+                <tr>
+                    <th>Rank</th>
+                    <th>Cashier</th>
+                    <th>Total Reports</th>
+                    <th>Total Counted Cash (₹)</th>
+                    <th>Total Surplus (₹)</th>
+                    <th>Total Shortage (₹)</th>
+                    <th>Status</th>
+                </tr>
+                </thead>
+
+                <tbody id="cashierPerformanceBody">
+                <tr><td colspan="7">Loading cashier data...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+	<section class="card daily-cash-counting">
+        <h2>Daily Cash Counting</h2>
+
+        <form id="cashForm" th:action="@{/save}" method="post">
+            <div class="form-row">
+                <div>
+                    <label for="cashierName">Cashier Name</label>
+                    <input type="text" id="cashierName" name="cashierName"
+                           placeholder="Enter cashier name" required>
+                </div>
+
+                <div>
+                    <label for="expectedCash">Expected Cash (₹)</label>
+                    <input type="number" id="expectedCash" name="expectedCash"
+                           placeholder="Enter expected cash" min="0" step="0.01" required>
+                </div>
+            </div>
+
+            <h2 style="margin-top:20px">Cash Denomination Details</h2>
+
+            <div class="table-wrapper">
+                <table class="denomination-table">
+                    <thead>
+                    <tr>
+                        <th>Denomination (₹)</th>
+                        <th>Quantity</th>
+                        <th>Amount (₹)</th>
+                    </tr>
+                    </thead>
+
+                    <tbody id="denominationBody">
+                    <tr><td>₹500</td><td><input type="number" class="quantity" min="0" step="1" value="0" data-denomination="500"></td><td class="amount">₹0.00</td></tr>
+                    <tr><td>₹200</td><td><input type="number" class="quantity" min="0" step="1" value="0" data-denomination="200"></td><td class="amount">₹0.00</td></tr>
+                    <tr><td>₹100</td><td><input type="number" class="quantity" min="0" step="1" value="0" data-denomination="100"></td><td class="amount">₹0.00</td></tr>
+                    <tr><td>₹50</td><td><input type="number" class="quantity" min="0" step="1" value="0" data-denomination="50"></td><td class="amount">₹0.00</td></tr>
+                    <tr><td>₹20</td><td><input type="number" class="quantity" min="0" step="1" value="0" data-denomination="20"></td><td class="amount">₹0.00</td></tr>
+                    <tr><td>₹10</td><td><input type="number" class="quantity" min="0" step="1" value="0" data-denomination="10"></td><td class="amount">₹0.00</td></tr>
+                    <tr><td>₹5</td><td><input type="number" class="quantity" min="0" step="1" value="0" data-denomination="5"></td><td class="amount">₹0.00</td></tr>
+                    <tr><td>₹2</td><td><input type="number" class="quantity" min="0" step="1" value="0" data-denomination="2"></td><td class="amount">₹0.00</td></tr>
+                    <tr><td>₹1</td><td><input type="number" class="quantity" min="0" step="1" value="0" data-denomination="1"></td><td class="amount">₹0.00</td></tr>
+                    </tbody>
+
+                    <tfoot>
+                    <tr class="total-row">
+                        <td colspan="2">Total Cash</td>
+                        <td id="totalCashDisplay">₹0.00</td>
+                    </tr>
+                    <tr class="total-row">
+                        <td colspan="2">Total Notes and Coins</td>
+                        <td id="totalNotesDisplay">0</td>
+                    </tr>
+                    </tfoot>
+                </table>
+            </div>
+
+            <input type="hidden" name="totalCash" id="totalCash" value="0">
+            <input type="hidden" name="totalNotes" id="totalNotes" value="0">
+
+            <div class="summary">
+                <div class="summary-box">
+                    Expected Cash
+                    <strong id="expectedDisplay">₹0.00</strong>
+                </div>
+
+                <div class="summary-box">
+                    Counted Cash
+                    <strong id="countedDisplay">₹0.00</strong>
+                </div>
+
+                <div class="summary-box">
+                    Difference
+                    <strong id="differenceDisplay">₹0.00</strong>
+                </div>
+            </div>
+
+            <button type="submit" class="save-button">Save Report</button>
+            <button type="button" class="print-button" onclick="window.print()">Print Report</button>
+        </form>
+    </section>
+
+    <section class="card">
+        <h2>Saved Cash Reports</h2>
+
+        <div class="filters no-print">
+            <input type="search" id="searchReports"
+                   placeholder="Search by report ID or cashier name">
+
+            <div class="date-filters">
+                <div>
+                    <label for="fromDateTable">From date</label>
+                    <input type="date" id="fromDateTable" th:value="${fromDate}">
+                </div>
+
+                <div>
+                    <label for="toDateTable">To date</label>
+                    <input type="date" id="toDateTable" th:value="${toDate}">
+                </div>
+            </div>
+
+            <button type="button" class="reset-button" id="resetFilters">Reset Filters</button>
+
+            <a id="exportCsvLink" class="action-link export-button"
+               th:href="@{/export/csv(fromDate=${fromDate},toDate=${toDate})}">
+                Export CSV
+            </a>
+        </div>
+
+        <p id="filterMessage" class="filter-message" aria-live="polite"></p>
+
+        <div class="table-wrapper">
+            <table class="records-table">
+                <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Cashier</th>
+                    <th>Expected (₹)</th>
+                    <th>Counted (₹)</th>
+                    <th>Difference (₹)</th>
+                    <th>Status</th>
+                    <th>Notes/Coins</th>
+                    <th>Date</th>
+                    <th class="actions-column">Actions</th>
+                </tr>
+                </thead>
+
+                <tbody id="recordsBody">
+                <tr th:each="record : ${records}"
+                    data-report-row="true"
+                    th:attr="data-report-id=${record.id},
+                             data-cashier=${record.cashierName},
+                             data-date=${record.createdAt}">
+
+                    <td th:text="${record.id}">1</td>
+                    <td th:text="${record.cashierName}">Cashier</td>
+                    <td th:text="${#numbers.formatDecimal(record.expectedCash, 1, 2)}">1000.00</td>
+                    <td th:text="${#numbers.formatDecimal(record.totalCash, 1, 2)}">1000.00</td>
+
+                    <td th:text="${#numbers.formatDecimal(record.difference, 1, 2)}"
+                        th:classappend="${record.difference > 0 ? 'difference-positive' : (record.difference < 0 ? 'difference-negative' : '')}">
+                        0.00
+                    </td>
+
+                    <td>
+                        <span class="status-badge"
+                              th:classappend="${record.difference > 0 ? ' status-surplus' : (record.difference < 0 ? ' status-warning' : ' status-ok')}"
+                              th:text="${record.difference > 0 ? 'Surplus Detected' : (record.difference < 0 ? 'Shortage Detected' : 'Cash Matched')}">
+                            Cash Matched
+                        </span>
+                    </td>
+
+                    <td th:text="${record.totalNotes}">0</td>
+
+                    <td th:text="${#temporals.format(record.createdAt, 'dd-MM-yyyy HH:mm')}">
+                        25-10-2026 12:34
+                    </td>
+
+                    <td class="actions actions-column no-print">
+                        <a class="action-link edit-button"
+                           th:href="@{/edit/{id}(id=${record.id})}">Edit</a>
+
+                        <form th:action="@{/delete/{id}(id=${record.id})}"
+                              method="post"
+                              onsubmit="return confirm('Are you sure you want to delete this report?');">
+                            <button type="submit" class="delete-button">Delete</button>
+                        </form>
+                    </td>
+                </tr>
+
+                <tr th:if="${#lists.isEmpty(records)}">
+                    <td colspan="9">No cash reports found.</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+</div>
+
+<script>
+    const quantityInputs = document.querySelectorAll(".quantity");
+    const expectedInput = document.getElementById("expectedCash");
+
+    function calculateTotal() {
+        let totalCash = 0;
+        let totalNotes = 0;
+
+        quantityInputs.forEach(function (input) {
+            const denomination = Number(input.dataset.denomination);
+            let quantity = Number(input.value);
+
+            if (!Number.isFinite(quantity) || quantity < 0) {
+                quantity = 0;
+                input.value = 0;
+            }
+
+            quantity = Math.floor(quantity);
+            input.value = quantity;
+
+            const amount = denomination * quantity;
+            totalCash += amount;
+            totalNotes += quantity;
+
+            input.closest("tr").querySelector(".amount").textContent =
+                "₹" + amount.toFixed(2);
+        });
+
+        const expected = Number(expectedInput.value) || 0;
+        const difference = totalCash - expected;
+
+        document.getElementById("totalCash").value = totalCash.toFixed(2);
+        document.getElementById("totalNotes").value = totalNotes;
+        document.getElementById("totalCashDisplay").textContent = "₹" + totalCash.toFixed(2);
+        document.getElementById("totalNotesDisplay").textContent = totalNotes.toString();
+        document.getElementById("expectedDisplay").textContent = "₹" + expected.toFixed(2);
+        document.getElementById("countedDisplay").textContent = "₹" + totalCash.toFixed(2);
+
+        const differenceDisplay = document.getElementById("differenceDisplay");
+
+        differenceDisplay.textContent =
+            (difference > 0 ? "+" : "") + "₹" + difference.toFixed(2);
+
+        differenceDisplay.style.color =
+            difference > 0 ? "#c87908" :
+            difference < 0 ? "#dc3545" : "#172033";
+    }
+
+    quantityInputs.forEach(input => input.addEventListener("input", calculateTotal));
+    expectedInput.addEventListener("input", calculateTotal);
+
+    document.getElementById("cashForm").addEventListener("submit", function (event) {
+        const cashierName = document.getElementById("cashierName").value.trim();
+
+        if (!cashierName) {
+            event.preventDefault();
+            alert("Please enter the cashier name.");
+            return;
+        }
+
+        if (
+            expectedInput.value === "" ||
+            !Number.isFinite(Number(expectedInput.value)) ||
+            Number(expectedInput.value) < 0
+        ) {
+            event.preventDefault();
+            alert("Please enter a valid expected cash amount.");
+            return;
+        }
+
+        calculateTotal();
+    });
+
+    const reportRows = Array.from(
+        document.querySelectorAll(".records-table tbody tr[data-report-row='true']")
+    );
+
+    function cellNumber(row, index) {
+        const value = Number(row.cells[index].textContent.trim().replace(/,/g, ""));
+        return Number.isFinite(value) ? value : 0;
+    }
+
+    function formatINR(value) {
+        return new Intl.NumberFormat("en-IN", {
+            style: "currency",
+            currency: "INR",
+            maximumFractionDigits: 2
+        }).format(Number(value) || 0);
+    }
+
+    const reports = reportRows.map(function (row) {
+        const expected = cellNumber(row, 2);
+        const counted = cellNumber(row, 3);
+        const rawDate = row.dataset.date || "";
+
+        return {
+            id: row.dataset.reportId || "",
+            cashier: (row.dataset.cashier || "Unknown").trim() || "Unknown",
+            date: rawDate,
+            expected: expected,
+            counted: counted,
+            difference: counted - expected,
+            notes: cellNumber(row, 6),
+            dateLabel: row.cells[7]?.textContent.trim() || ""
+        };
+    });
+
+    const searchInput = document.getElementById("searchReports");
+    const filterMessage = document.getElementById("filterMessage");
+    const recordsBody = document.getElementById("recordsBody");
+    const fromDateTable = document.getElementById("fromDateTable");
+    const toDateTable = document.getElementById("toDateTable");
+
+    function getFilteredReports() {
+        const searchText = searchInput.value.trim().toLowerCase();
+        const fromDate = fromDateTable ? fromDateTable.value : "";
+        const toDate = toDateTable ? toDateTable.value : "";
+
+        return reports.filter(function (report) {
+            const id = String(report.id).toLowerCase();
+            const cashier = String(report.cashier).toLowerCase();
+            const reportDate = String(report.date || "").substring(0, 10);
+
+            const matchesSearch =
+                id.includes(searchText) || cashier.includes(searchText);
+
+            const matchesFromDate =
+                !fromDate || (reportDate && reportDate >= fromDate);
+
+            const matchesToDate =
+                !toDate || (reportDate && reportDate <= toDate);
+
+            return matchesSearch && matchesFromDate && matchesToDate;
+        });
+    }
+
+    function buildCashierPerformance(sourceReports = getFilteredReports()) {
+        const cashiers = {};
+
+        sourceReports.forEach(function (report) {
+            const key = report.cashier.toLowerCase();
+
+            if (!cashiers[key]) {
+                cashiers[key] = {
+                    name: report.cashier,
+                    reports: 0,
+                    counted: 0,
+                    surplus: 0,
+                    shortage: 0
+                };
+            }
+
+            const item = cashiers[key];
+            item.reports++;
+            item.counted += report.counted;
+
+            if (report.difference > 0) item.surplus += report.difference;
+            if (report.difference < 0) item.shortage += Math.abs(report.difference);
+        });
+
+        const items = Object.values(cashiers).sort(function (a, b) {
+            return b.shortage - a.shortage ||
+                b.surplus - a.surplus ||
+                a.name.localeCompare(b.name);
+        });
+
+        const tbody = document.getElementById("cashierPerformanceBody");
+        tbody.replaceChildren();
+
+        if (items.length === 0) {
+            const row = document.createElement("tr");
+            const cell = document.createElement("td");
+
+            cell.colSpan = 7;
+            cell.textContent = "No cashier reports available for this date range.";
+
+            row.appendChild(cell);
+            tbody.appendChild(row);
+            return;
+        }
+
+        items.forEach(function (item, index) {
+            const row = document.createElement("tr");
+
+            const values = [
+                String(index + 1),
+                item.name,
+                String(item.reports),
+                formatINR(item.counted),
+                formatINR(item.surplus),
+                formatINR(item.shortage)
+            ];
+
+            values.forEach(function (value, valueIndex) {
+                const cell = document.createElement("td");
+                cell.textContent = value;
+
+                if (valueIndex === 0) {
+                    const badge = document.createElement("span");
+                    badge.className = "rank-badge";
+                    badge.textContent = value;
+
+                    cell.textContent = "";
+                    cell.appendChild(badge);
+                }
+
+                row.appendChild(cell);
+            });
+
+            const status = document.createElement("td");
+            status.classList.add("status-badge");
+
+            if (item.shortage > 0) {
+                status.textContent = "Shortage recorded";
+                status.classList.add("status-warning");
+            } else if (item.surplus > 0) {
+                status.textContent = "Surplus recorded";
+                status.classList.add("status-surplus");
+            } else {
+                status.textContent = "Cash matched";
+                status.classList.add("status-ok");
+            }
+
+            row.appendChild(status);
+            tbody.appendChild(row);
+        });
+    }
+
+    function filterReports() {
+        const searchText = searchInput.value.trim().toLowerCase();
+        const fromDate = fromDateTable ? fromDateTable.value : "";
+        const toDate = toDateTable ? toDateTable.value : "";
+        let visibleCount = 0;
+
+        reportRows.forEach(function (row) {
+            const id = (row.dataset.reportId || "").toLowerCase();
+            const cashier = (row.dataset.cashier || "").toLowerCase();
+            const reportDate = (row.dataset.date || "").substring(0, 10);
+
+            const matchesSearch =
+                id.includes(searchText) || cashier.includes(searchText);
+
+            const matchesFromDate =
+                !fromDate || (reportDate && reportDate >= fromDate);
+
+            const matchesToDate =
+                !toDate || (reportDate && reportDate <= toDate);
+
+            const show = matchesSearch && matchesFromDate && matchesToDate;
+            row.style.display = show ? "" : "none";
+
+            if (show) visibleCount++;
+        });
+
+        let noResults = document.getElementById("noFilterResults");
+
+        if (visibleCount === 0) {
+            if (!noResults) {
+                noResults = document.createElement("tr");
+                noResults.id = "noFilterResults";
+
+                const cell = document.createElement("td");
+                cell.colSpan = 9;
+                cell.textContent = "No reports match your filters.";
+
+                noResults.appendChild(cell);
+                recordsBody.appendChild(noResults);
+            }
+
+            noResults.style.display = "";
+        } else if (noResults) {
+            noResults.style.display = "none";
+        }
+
+        filterMessage.textContent = visibleCount + " report(s) shown.";
+    }
+
+    let cashComparisonChart = null;
+    let surplusShortageChart = null;
+    let differenceChart = null;
+    let countedCashChart = null;
+
+    function createCharts(sourceReports = getFilteredReports()) {
+        if (typeof Chart === "undefined") {
+            document.querySelectorAll(".chart-box").forEach(function (box) {
+                if (!box.querySelector(".chart-load-error")) {
+                    const note = document.createElement("p");
+                    note.className = "chart-note chart-load-error";
+                    note.textContent = "Charts could not load. Check your internet connection.";
+                    box.appendChild(note);
+                }
+            });
+            return;
+        }
+
+        [cashComparisonChart, surplusShortageChart, differenceChart, countedCashChart]
+            .forEach(function (chart) {
+                if (chart) chart.destroy();
+            });
+
+        const labels = sourceReports.map(function (report) {
+            const cashier = report.cashier || "Unknown cashier";
+            const parsed = new Date(report.date);
+
+            const dateLabel = !Number.isNaN(parsed.getTime())
+                ? parsed.toLocaleDateString("en-IN", {
+                    day: "2-digit",
+                    month: "short",
+                    year: "numeric"
+                })
+                : report.dateLabel;
+
+            return dateLabel
+                ? `${cashier} · ${dateLabel}`
+                : `${cashier} · #${report.id}`;
+        });
+
+        const expectedValues = sourceReports.map(report => report.expected);
+        const countedValues = sourceReports.map(report => report.counted);
+        const differences = sourceReports.map(report => report.difference);
+
+        const surplus = differences.reduce(
+            (sum, value) => sum + (value > 0 ? value : 0), 0
+        );
+
+        const shortage = differences.reduce(
+            (sum, value) => sum + (value < 0 ? Math.abs(value) : 0), 0
+        );
+
+        const tooltipINR = {
+            callbacks: {
+                label: context => {
+                    const label = context.dataset?.label || context.label || "";
+                    const value = context.parsed?.y ?? context.parsed ?? context.raw ?? 0;
+                    return `${label}: ${formatINR(value)}`;
+                }
+            }
+        };
+
+        const baseOptions = {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+                intersect: false,
+                mode: "index"
+            },
+            plugins: {
+                legend: {
+                    position: "bottom",
+                    labels: {
+                        usePointStyle: true,
+                        boxWidth: 10,
+                        padding: 16
+                    }
+                },
+                tooltip: tooltipINR
+            }
+        };
+
+        const noReports = sourceReports.length === 0;
+
+        document.getElementById("noReportsMessage").style.display =
+            noReports ? "block" : "none";
+
+        document.getElementById("noShortageMessage").style.display =
+            (!noReports && shortage === 0) ? "block" : "none";
+
+        cashComparisonChart = new Chart(
+            document.getElementById("cashComparisonChart"),
+            {
+                type: "bar",
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: "Expected Cash",
+                            data: expectedValues,
+                            backgroundColor: "rgba(49, 92, 245, 0.75)",
+                            borderRadius: 6
+                        },
+                        {
+                            label: "Counted Cash",
+                            data: countedValues,
+                            backgroundColor: "rgba(21, 153, 87, 0.75)",
+                            borderRadius: 6
+                        }
+                    ]
+                },
+                options: {
+                    ...baseOptions,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: value => formatINR(value)
+                            }
+                        },
+                        x: {
+                            ticks: {
+                                maxRotation: 45,
+                                minRotation: 0
+                            }
+                        }
+                    }
+                }
+            }
+        );
+
+        surplusShortageChart = new Chart(
+            document.getElementById("surplusShortageChart"),
+            {
+                type: "doughnut",
+                data: {
+                    labels: ["Surplus", "Shortage"],
+                    datasets: [{
+                        data: [surplus, shortage],
+                        backgroundColor: [
+                            "rgba(200, 121, 8, 0.8)",
+                            "rgba(220, 53, 69, 0.8)"
+                        ],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    ...baseOptions,
+                    plugins: {
+                        ...baseOptions.plugins,
+                        tooltip: {
+                            callbacks: {
+                                label: context =>
+                                    `${context.label}: ${formatINR(context.raw)}`
+                            }
+                        }
+                    }
+                }
+            }
+        );
+
+        differenceChart = new Chart(
+            document.getElementById("differenceChart"),
+            {
+                type: "bar",
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: "Cash Difference",
+                        data: differences,
+                        backgroundColor: differences.map(value =>
+                            value > 0
+                                ? "rgba(200, 121, 8, 0.8)"
+                                : value < 0
+                                    ? "rgba(220, 53, 69, 0.8)"
+                                    : "rgba(21, 153, 87, 0.8)"
+                        ),
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    ...baseOptions,
+                    scales: {
+                        y: {
+                            ticks: {
+                                callback: value => formatINR(value)
+                            }
+                        }
+                    }
+                }
+            }
+        );
+
+        countedCashChart = new Chart(
+            document.getElementById("countedCashChart"),
+            {
+                type: "line",
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: "Counted Cash",
+                        data: countedValues,
+                        borderColor: "#315cf5",
+                        backgroundColor: "rgba(49, 92, 245, 0.12)",
+                        fill: true,
+                        tension: 0.3,
+                        pointRadius: 4,
+                        pointHoverRadius: 6
+                    }]
+                },
+                options: {
+                    ...baseOptions,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: value => formatINR(value)
+                            }
+                        }
+                    }
+                }
+            }
+        );
+    }
+
+    function updateDashboard() {
+        filterReports();
+
+        const filteredReports = getFilteredReports();
+
+        buildCashierPerformance(filteredReports);
+        createCharts(filteredReports);
+    }
+
+    searchInput.addEventListener("input", updateDashboard);
+
+    if (fromDateTable) {
+        fromDateTable.addEventListener("change", updateDashboard);
+    }
+
+    if (toDateTable) {
+        toDateTable.addEventListener("change", updateDashboard);
+    }
+
+    document.getElementById("resetFilters").addEventListener("click", function () {
+        searchInput.value = "";
+
+        if (fromDateTable) fromDateTable.value = "";
+        if (toDateTable) toDateTable.value = "";
+
+        updateDashboard();
+    });
+
+    const exportLink = document.getElementById("exportCsvLink");
+
+    exportLink.addEventListener("click", function (event) {
+        const fromDate = document.getElementById("fromDate");
+        const toDate = document.getElementById("toDate");
+
+        if (fromDate && toDate) {
+            const selectedFrom = fromDate.value;
+            const selectedTo = toDate.value;
+
+            const pageFrom =
+                new URLSearchParams(window.location.search).get("fromDate") || "";
+
+            const pageTo =
+                new URLSearchParams(window.location.search).get("toDate") || "";
+
+            if (selectedFrom !== pageFrom || selectedTo !== pageTo) {
+                event.preventDefault();
+                alert("Please click Apply Dates before exporting, so the CSV matches your selected date range.");
+            }
+        }
+    });
+
+    calculateTotal();
+    updateDashboard();
+</script>
+
+</body>
+</html>
